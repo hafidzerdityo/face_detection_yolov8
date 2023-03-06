@@ -4,13 +4,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import io
 from typing import Optional, List, Dict
-from pydantic import BaseModel
+from pydantic import BaseModel, StrictStr
 import json
 import uvicorn
 import model.face_det_yv8 as face_det_yv8
 import pandas as pd
 import get_csv, get_stats
 from fastapi.security import OAuth2PasswordBearer
+import schemas
 
 api_keys = [
     'nyamnyamnyam'
@@ -42,13 +43,13 @@ app.add_middleware(
 
 
 class ImagesInputSinglePathBansos(BaseModel):
-    path: str
+    path: StrictStr
 
 class ImagesInputSinglePath(BaseModel):
-    path: str
+    path: StrictStr
 
 class ImagesInputSingleb64(BaseModel):
-    b64str: str
+    b64str: StrictStr
 
 @app.get('/')
 def greetings():
@@ -84,8 +85,19 @@ def face_detection_single_path(item: ImagesInputSinglePath):
 def face_detection_single_b64(item: ImagesInputSingleb64):
     data = json.loads(item.json())
     predict = face_det_yv8.predict_face_b64(data['b64str'])
-    return {'data': predict}
+    if 'error' in predict.keys():
+        raise HTTPException(status_code=400, detail=[{'loc':[], 'msg': predict['error'],'type':''}])
+    return schemas.CustomResponse(detail=[{'msg': 'face detection success', 'data':predict}])
+    
+@app.post('/face_det_b64_pgc')
+def face_detection_single_b64_pgc(item: ImagesInputSingleb64):
+    data = json.loads(item.json())
+    predict = face_det_yv8.predict_face_b64_pgc(data['b64str'])
+    if 'error' in predict.keys():
+        raise HTTPException(status_code=400, detail=[{'loc':[], 'msg': predict['error'],'type':''}])
+    return schemas.CustomResponse(detail=[{'msg': 'face detection success', 'data':predict}])
 
+        
 # @app.get('/face_statistic', dependencies=[Depends(api_key_auth)])
 @app.get('/face_statistic')
 def face_stat():

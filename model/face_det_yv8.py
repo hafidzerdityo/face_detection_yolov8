@@ -76,13 +76,13 @@ def predict_face_b64(img_b64str: str) -> dict:
         'result': '',
         'image_predicted_b64': ''
     }
-    orgimg = Image.open(BytesIO(base64.b64decode(img_b64str)))
-    results = model.predict(orgimg, max_det=50, conf=0.4)  
     try:
-        dict_output['confidence'] = results[0].boxes.conf.tolist()
+        orgimg = Image.open(BytesIO(base64.b64decode(img_b64str)))
     except:
-        dict_output['confidence'] = [0]
+        return {'error': 'cannot identify the given base64 string'}
+    results = model.predict(orgimg, max_det=50, conf=0.4)  
 
+    dict_output['confidence'] = results[0].boxes.conf.tolist()
     boxes = results[0].boxes
     box = boxes 
     dict_output['bboxes'] = box.xyxy.tolist()
@@ -90,8 +90,8 @@ def predict_face_b64(img_b64str: str) -> dict:
         dict_output['result'] = True 
     else:
         dict_output['result'] = False
-    
-    if dict_output['result'] or dict_output['bboxes']:
+
+    if dict_output['result']:
         img = cv2.cvtColor(np.array(orgimg), cv2.COLOR_RGB2BGR)
         for each_box, each_conf in zip(dict_output['bboxes'], dict_output['confidence']):
             x1,y1,x2,y2 = each_box
@@ -100,6 +100,26 @@ def predict_face_b64(img_b64str: str) -> dict:
         img = cv2.imencode('.jpg', img)[1].tobytes()
         b64_str_out = base64.b64encode(img).decode('ascii')
         dict_output['image_predicted_b64'] =  b64_str_out
-        return {'b64_pred' :dict_output['image_predicted_b64'], 'result': dict_output['result']}
+    return dict_output
+
+    
+def predict_face_b64_pgc(img_b64str: str) -> dict:
+    dict_output = {
+        'confidence': '',
+        'result': '',
+    }
+
+    try:
+        orgimg = Image.open(BytesIO(base64.b64decode(img_b64str)))
+    except:
+        return {'error': 'cannot identify the given base64 string'}
+    
+    results = model.predict(orgimg, max_det=50, conf=0.4)  
+
+    dict_output['confidence'] = results[0].boxes.conf.tolist()
+    if dict_output['confidence'] :
+        dict_output['result'] = True 
     else:
-        return {'b64_pred': '', 'result' :dict_output['result']}
+        dict_output['result'] = False
+
+    return dict_output
