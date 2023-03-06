@@ -1,3 +1,4 @@
 .env
 model/datasets/
 venv/
+get_data_training.ipynb
